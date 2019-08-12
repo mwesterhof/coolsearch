@@ -1,34 +1,42 @@
-class SearchField:
-    def __init__(self, name, expression=None):
-        self.name = name
-        self.expression = expression
+from django.db.models import CharField, Q, Value
+
+
+class SearchConfig:
+    def __init__(self, title=None, body=None):
+        self.title = title
+        self.body = body
 
 
 class ModelIndex:
     def __init__(self):
         self._index = []
 
-    def _get_result_queryset(self, line, body):
-        model, fields = line
-        annotation_dict = {
-            field.name: field.expression
-            for field in fields
-            if field.expression
+    def _search_for_model(self, model, query):
+        annotations = {
+            'type': Value(model._meta.verbose_name, output_field=CharField())
         }
+        search_config = model.search_config
+        if search_config.title:
+            annotations['title'] = search_config.title
+        if search_config.body:
+            annotations['body'] = search_config.body
 
-        qs = model.objects.annotate(**annotation_dict).filter(
-            body=body).values(*[field.name for field in fields])
-        return qs
+        return model.objects.annotate(**annotations).filter(
+            Q(body__icontains=query) | Q(title__icontains=query)).values(
+                'title', 'body', 'type')
 
     def add(self, model):
         self._index.append(model)
 
-    def get_union(self, body):
-        if self._index:
-            first_line, *lines = self._index
-            result = self._get_result_queryset(first_line, body)
-            for entry in lines:
-                result = result.union(self._get_result_queryset(entry, body))
+    def search(self, query):
+        if not self._index:
+            return []
+
+        first_model, *models = self._index
+        result = self._search_for_model(first_model, query)
+        for model in models:
+            partial = self._search_for_model(model, query)
+            result = result.union(partial)
 
         return result
 
@@ -37,9 +45,6 @@ modelindex = ModelIndex()
 
 
 def searchable(model):
-    search_fields = getattr(model, 'search_fields', [])
-    if search_fields:
-        for search_field in search_fields:
-            search_field.model = model
-        modelindex.add((model, search_fields))
+    if model.search_config:
+        modelindex.add(model)
     return model
