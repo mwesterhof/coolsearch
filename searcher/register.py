@@ -6,10 +6,20 @@ class ModelIndex:
     def __init__(self):
         self._index = []
 
+    def _get_contenttype(self, config):
+        if not hasattr(config, 'contenttype'):
+            ContentType = apps.get_model('contenttypes', 'ContentType')
+            config.contenttype = ContentType.objects.get_for_model(
+                config.model)
+        return config.contenttype
+
     def _search_for_config(self, config, query):
+        content_type = self._get_contenttype(config)
+
         model = config.model
         annotations = {
-            'type': Value(model._meta.verbose_name, output_field=CharField())
+            'type': Value(model._meta.verbose_name, output_field=CharField()),
+            'content_type': Value(content_type, output_field=CharField()),
         }
         if config.title:
             annotations['title'] = config.title
@@ -18,7 +28,7 @@ class ModelIndex:
 
         return model.objects.annotate(**annotations).filter(
             Q(body__icontains=query) | Q(title__icontains=query)).values(
-                'title', 'body', 'type')
+                'id', 'title', 'body', 'type', 'content_type')
 
     def register(self, config):
         self._index.append(config)
