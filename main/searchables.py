@@ -1,7 +1,4 @@
-from django.db import models
-from django.db.models.functions import Concat
-
-from searcher.register import SearchConfig
+from searcher.register import fields, SearchConfig
 
 from .models import Job, Person
 
@@ -9,14 +6,12 @@ from .models import Job, Person
 class JobConfig(SearchConfig):
     model = Job
 
-    title = models.F('name')
-    body = models.F('name')
+    title = fields('name')
+    body = fields('name')
 
 
 class PersonConfig(SearchConfig):
     model = Person
 
-    title = Concat(
-        models.F('first_name'), models.Value(' '), models.F('last_name')
-    )
-    body = models.F('first_name')
+    title = fields('first_name', 'last_name')
+    body = fields('first_name')

@@ -18,17 +18,17 @@ class ModelIndex:
 
         model = config.model
         annotations = {
-            'type': Value(model._meta.verbose_name, output_field=CharField()),
-            'content_type': Value(content_type, output_field=CharField()),
+            '_type': Value(model._meta.verbose_name, output_field=CharField()),
+            '_content_type': Value(content_type, output_field=CharField()),
         }
         if config.title:
             annotations['title'] = config.title
         if config.body:
             annotations['body'] = config.body
 
-        return model.objects.annotate(**annotations).filter(
+        return config.get_queryset().annotate(**annotations).filter(
             Q(body__icontains=query) | Q(title__icontains=query)).values(
-                'id', 'title', 'body', 'type', 'content_type')
+                'id', 'title', 'body', '_type', '_content_type')
 
     def register(self, config):
         self._index.append(config)
@@ -59,6 +59,10 @@ class SearchConfigMeta(type):
 class SearchConfig(metaclass=SearchConfigMeta):
     title = None
     body = None
+
+    @classmethod
+    def get_queryset(cls):
+        return cls.model.objects.all()
 
 
 def import_configs():
