@@ -11,7 +11,7 @@ class ModelIndex:
             ContentType = apps.get_model('contenttypes', 'ContentType')
             config.contenttype = ContentType.objects.get_for_model(
                 config.model)
-        return config.contenttype
+        return config.contenttype.pk
 
     def _search_for_config(self, config, query):
         content_type = self._get_contenttype(config)
