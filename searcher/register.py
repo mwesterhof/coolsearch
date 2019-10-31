@@ -20,15 +20,13 @@ class ModelIndex:
         annotations = {
             '_type': Value(model._meta.verbose_name, output_field=CharField()),
             '_content_type': Value(content_type, output_field=CharField()),
+            '_title': config.title,
+            '_body': config.body,
         }
-        if config.title:
-            annotations['title'] = config.title
-        if config.body:
-            annotations['body'] = config.body
 
         return config.get_queryset().annotate(**annotations).filter(
-            Q(body__icontains=query) | Q(title__icontains=query)).values(
-                'id', 'title', 'body', '_type', '_content_type')
+            Q(_body__icontains=query) | Q(_title__icontains=query)).values(
+                'id', '_title', '_body', '_type', '_content_type')
 
     def register(self, config):
         self._index.append(config)
