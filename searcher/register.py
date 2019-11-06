@@ -32,6 +32,11 @@ class ModelIndex:
         self._index.append(config)
 
     def search(self, query):
+        # queryset types matter, the first set should be a vanilla queryset
+        # unfortunately, the only way to ensure this is to start with one
+        # that's guaranteed to be vanilla and non-empty
+        # to get around this, we'll start with a contenttype QS,
+        # and exclude those results at the end
         if not self._index:
             return []
 
