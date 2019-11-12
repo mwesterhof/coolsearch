@@ -40,9 +40,10 @@ class ModelIndex:
         if not self._index:
             return []
 
-        first_config, *configs = self._index
-        result = self._search_for_config(first_config, query)
-        for config in configs:
+        from searcher.searchables import ContentTypeSearchConfig
+        result = self._search_for_config(ContentTypeSearchConfig, query)
+
+        for config in self._index:
             partial = self._search_for_config(config, query)
             result = result.union(partial)
 
@@ -53,7 +54,7 @@ class SearchConfigMeta(type):
     def __new__(cls, name, bases, dct):
         result = super().__new__(cls, name, bases, dct)
 
-        if bases:
+        if bases and dct.get('_auto_add', True):
             modelindex.register(result)
 
         return result
