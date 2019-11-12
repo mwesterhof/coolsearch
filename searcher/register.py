@@ -2,6 +2,10 @@ from django.apps.registry import apps
 from django.db.models import CharField, Q, Value
 
 
+class ConfigNotFound(Exception):
+    pass
+
+
 class ModelIndex:
     def __init__(self):
         self._index = []
@@ -28,15 +32,17 @@ class ModelIndex:
             Q(_body__icontains=query) | Q(_title__icontains=query)).values(
                 'id', '_title', '_body', '_type', '_content_type')
 
+    def _find_config_for_model(self, model):
+        for config in self._index:
+            if config.model is model:
+                return config
+
+        raise ConfigNotFound(model)
+
     def register(self, config):
         self._index.append(config)
 
     def search(self, query):
-        # queryset types matter, the first set should be a vanilla queryset
-        # unfortunately, the only way to ensure this is to start with one
-        # that's guaranteed to be vanilla and non-empty
-        # to get around this, we'll start with a contenttype QS,
-        # and exclude those results at the end
         if not self._index:
             return []
 
