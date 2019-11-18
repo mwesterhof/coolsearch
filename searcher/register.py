@@ -1,5 +1,12 @@
 from django.apps.registry import apps
-from django.db.models import CharField, Q, Value
+from django.db.models import CharField, Value
+
+from .expressions import body_field, title_field
+
+
+class SearchOptions:
+    PARTIAL = 1
+    FULL = 2
 
 
 class ConfigNotFound(Exception):
@@ -17,7 +24,7 @@ class ModelIndex:
                 config.model)
         return config.contenttype.pk
 
-    def _search_for_config(self, config, query):
+    def _search_for_config(self, config, query, search_type):
         content_type = self._get_contenttype(config)
 
         model = config.model
@@ -28,9 +35,13 @@ class ModelIndex:
             '_body': config.body,
         }
 
-        return config.get_queryset().annotate(**annotations).filter(
-            Q(_body__icontains=query) | Q(_title__icontains=query)).values(
-                'id', '_title', '_body', '_type', '_content_type')
+        qs = config.get_queryset().annotate(**annotations)
+        if search_type == SearchOptions.PARTIAL:
+            filtered = qs.filter(_body__contains=query)
+        else:
+            filtered = qs.filter(_body=query)
+
+        return filtered.values('id', '_title', '_type', '_content_type')
 
     def _find_config_for_model(self, model):
         for config in self._index:
@@ -42,14 +53,14 @@ class ModelIndex:
     def register(self, config):
         self._index.append(config)
 
-    def search(self, query):
+    def search(self, query, search_type=SearchOptions.PARTIAL):
         if not self._index:
             return []
 
         first_config, *configs = self._index
-        result = self._search_for_config(first_config, query)
+        result = self._search_for_config(first_config, query, search_type)
         for config in configs:
-            partial = self._search_for_config(config, query)
+            partial = self._search_for_config(config, query, search_type)
             result = result.union(partial)
 
         return result
@@ -57,6 +68,12 @@ class ModelIndex:
 
 class SearchConfigMeta(type):
     def __new__(cls, name, bases, dct):
+        if bases:
+            # concatenated title field
+            dct['title'] = title_field(dct['title_fields'])
+            # searchable body field
+            dct['body'] = body_field(dct['body_fields'])
+
         result = super().__new__(cls, name, bases, dct)
 
         if bases:
