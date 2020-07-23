@@ -1,4 +1,5 @@
 from django.apps.registry import apps
+from django.contrib.postgres.search import SearchQuery, SearchRank
 from django.db.models import CharField, Value
 
 from .expressions import body_field, title_field
@@ -33,15 +34,17 @@ class ModelIndex:
             '_content_type': Value(content_type, output_field=CharField()),
             '_title': config.title,
             '_body': config.body,
+            '_rank': SearchRank(config.body, query),
         }
 
         qs = config.get_queryset().annotate(**annotations)
         if search_type == SearchOptions.PARTIAL:
-            filtered = qs.filter(_body__contains=query)
+            filtered = qs.filter(_body__contains=query.value)
         else:
-            filtered = qs.filter(_body=query)
+            filtered = qs.filter(_body=query.value)
 
-        return filtered.values('id', '_title', '_type', '_content_type')
+        return filtered.values(
+            'id', '_title', '_type', '_content_type', '_rank')
 
     def _find_config_for_model(self, model):
         for config in self._index:
@@ -57,10 +60,11 @@ class ModelIndex:
         if not self._index:
             return []
 
+        query_obj = SearchQuery(query)
         first_config, *configs = self._index
-        result = self._search_for_config(first_config, query, search_type)
+        result = self._search_for_config(first_config, query_obj, search_type)
         for config in configs:
-            partial = self._search_for_config(config, query, search_type)
+            partial = self._search_for_config(config, query_obj, search_type)
             result = result.union(partial)
 
         return result
