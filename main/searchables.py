@@ -1,4 +1,5 @@
-from searcher.register import fields, SearchConfig
+from searcher.expressions import fields
+from searcher.register import SearchConfig
 
 from .models import Job, Person
 
