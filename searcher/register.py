@@ -64,19 +64,19 @@ class SearchConfig(metaclass=SearchConfigMeta):
     body = None
 
     @classmethod
-    def search(self, query, **filters):
+    def search(cls, query, **filters):
         registry = modelindex
-        content_type = registry._get_contenttype(self)
+        content_type = registry._get_contenttype(cls)
 
-        model = self.model
+        model = cls.model
         annotations = {
             '_type': Value(model._meta.verbose_name, output_field=CharField()),
             '_content_type': Value(content_type, output_field=CharField()),
-            '_title': self.title,
-            '_body': self.body,
+            '_title': cls.title,
+            '_body': cls.body,
         }
 
-        return self.get_queryset().filter(**filters).annotate(**annotations).filter(
+        return cls.get_queryset().filter(**filters).annotate(**annotations).filter(
             Q(_body__icontains=query) | Q(_title__icontains=query)).values(
                 'id', '_title', '_body', '_type', '_content_type')
 
