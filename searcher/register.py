@@ -41,9 +41,9 @@ class ModelIndex:
             return []
 
         first_config, *configs = self._index
-        result = self._search_for_config(first_config, query)
+        result = first_config.search(query)
         for config in configs:
-            partial = self._search_for_config(config, query)
+            partial = config.search(query)
             result = result.union(partial)
 
         return result
@@ -62,6 +62,23 @@ class SearchConfigMeta(type):
 class SearchConfig(metaclass=SearchConfigMeta):
     title = None
     body = None
+
+    @classmethod
+    def search(self, query, **filters):
+        registry = modelindex
+        content_type = registry._get_contenttype(self)
+
+        model = self.model
+        annotations = {
+            '_type': Value(model._meta.verbose_name, output_field=CharField()),
+            '_content_type': Value(content_type, output_field=CharField()),
+            '_title': self.title,
+            '_body': self.body,
+        }
+
+        return self.get_queryset().filter(**filters).annotate(**annotations).filter(
+            Q(_body__icontains=query) | Q(_title__icontains=query)).values(
+                'id', '_title', '_body', '_type', '_content_type')
 
     @classmethod
     def get_queryset(cls):
