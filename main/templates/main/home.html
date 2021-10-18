@@ -1,0 +1,25 @@
+{% load searcher_tags %}
+<html>
+    <head>
+        <title>home</title>
+    </head>
+    <body>
+        <h1>home</h1>
+
+        <form action='.' method='post'>
+            {% csrf_token %}
+            <input name='query' type='text' placeholder='query' />
+            <input type='submit' />
+        </form>
+
+        {% if results %}
+        <ul>
+            {% for result in results %}
+            <li>
+                <a href="{% searcher_url result %}">({{ result.type }}) {{ result.title }}</a>
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </body>
+</html>

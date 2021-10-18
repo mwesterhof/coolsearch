@@ -29,9 +29,9 @@ class ModelIndex:
 
         model = config.model
         annotations = {
-            '_type': Value(model._meta.verbose_name, output_field=CharField()),
+            'type': Value(model._meta.verbose_name, output_field=CharField()),
             '_content_type': Value(content_type, output_field=CharField()),
-            '_title': config.title,
+            'title': config.title,
             '_body': config.body,
         }
 
@@ -41,7 +41,7 @@ class ModelIndex:
         else:
             filtered = qs.filter(_body=query)
 
-        return filtered.values('id', '_title', '_type', '_content_type')
+        return filtered.values('id', 'title', 'type', '_content_type')
 
     def _find_config_for_model(self, model):
         for config in self._index:
