@@ -37,7 +37,7 @@ class ModelIndex:
 
         qs = config.get_queryset().annotate(**annotations)
         if search_type == SearchOptions.PARTIAL:
-            filtered = qs.filter(_body__contains=query)
+            filtered = qs.filter(_body__icontains=query)
         else:
             filtered = qs.filter(_body=query)
 
