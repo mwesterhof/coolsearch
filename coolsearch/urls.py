@@ -7,8 +7,8 @@ from searcher import urls as searcher_urls
 
 
 urlpatterns = [
+    path('', include(main_urls)),
     path('admin/', admin.site.urls),
     path('search/', include(searcher_urls)),
     path('clubs/', include(clubs_urls)),
-    path('', include(main_urls)),
 ]
